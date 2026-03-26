@@ -63,7 +63,7 @@ export const login = async (req: Request, res: Response) => {
 export const getMe = async (req: any, res: Response) => {
   try {
     const user = await User.findById(req.user._id).select(
-      "uid username avatar interests bio"
+      "uid username avatar interests bio location"
     );
     // console.log("Fetched user in getMe:", user);
 

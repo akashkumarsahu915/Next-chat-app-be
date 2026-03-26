@@ -12,8 +12,9 @@ export interface IUser extends Document {
     isPrivate: boolean;
     isOnline: boolean;
     lastSeen?: Date;
-    friends: mongoose.Types.ObjectId[];
-    blockedUsers: mongoose.Types.ObjectId[];
+    location?: string[];
+    friends: [{type:mongoose.Types.ObjectId[],ref:"User",index:true}];
+    blockedUsers:[{type: mongoose.Types.ObjectId[],ref:"User",index:true}];
     notificationSettings: {
         pushEnabled: boolean;
         newMessages: boolean;
@@ -28,7 +29,7 @@ const userSchema = new Schema<IUser>(
         username: { type: String, unique: true, required: true },
         email: { type: String, unique: true, required: true },
         password: { type: String, required: true },
-
+        location: { type: [String], default: [] },
         bio: { type: String, default: "" },
         avatar: { type: String, default: "" },
         interests: [{ type: String }],

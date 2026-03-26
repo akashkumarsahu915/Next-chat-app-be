@@ -7,7 +7,8 @@ import connectDB from './config/db/connect';
 
 
 import authRoutes from "./routes/auth.route";
-
+import userRoutes from "./routes/user.routes";
+import friendRequestRoutes from "./routes/Friend.request.route";
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -29,8 +30,6 @@ const swaggerOptions: swaggerJsdoc.Options = {
         description: "Local Development Server",
       },
     ],
-
-    // 🔥 ADD THIS BLOCK
     components: {
       securitySchemes: {
         bearerAuth: {
@@ -40,13 +39,6 @@ const swaggerOptions: swaggerJsdoc.Options = {
         },
       },
     },
-
-    // 🔥 ADD THIS TOO
-    // security: [
-    //   {
-    //     bearerAuth: [],
-    //   },
-    // ],
   },
 
   apis: ["./src/routes/*.ts"],
@@ -57,6 +49,8 @@ const swaggerSpec = swaggerJsdoc(swaggerOptions);
 app.use('/health', healthRoutes);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use("/auth", authRoutes);
+app.use("/user", userRoutes);
+app.use("/friend-request", friendRequestRoutes);
 // Default Route
 app.get('/', (req: Request, res: Response) => {
   res.redirect('/api-docs');
