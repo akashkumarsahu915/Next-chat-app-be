@@ -9,6 +9,7 @@ import connectDB from './config/db/connect';
 import authRoutes from "./routes/auth.route";
 import userRoutes from "./routes/user.routes";
 import friendRequestRoutes from "./routes/Friend.request.route";
+import chatRoutes from "./routes/chat.route";
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -51,6 +52,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use("/auth", authRoutes);
 app.use("/user", userRoutes);
 app.use("/friend-request", friendRequestRoutes);
+app.use("/api", chatRoutes);
 // Default Route
 app.get('/', (req: Request, res: Response) => {
   res.redirect('/api-docs');
