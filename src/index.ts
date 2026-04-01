@@ -18,7 +18,7 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(express.json());
 app.use(cors({
-  origin: ["http://localhost:5173", "https://next-chat-app-3au1.onrender.com"],
+  origin: ["http://localhost:5173", "https://next-chat-app-3au1.onrender.com", `${process.env.RENDER_EXTERNAL_URL}`],
   credentials: true,
 }));
 // Swagger Configuration
@@ -32,9 +32,11 @@ const swaggerOptions: swaggerJsdoc.Options = {
     },
     servers: [
       {
+        url: process.env.RENDER_EXTERNAL_URL,
+        description: "Main Server",
+      }, {
         url: `http://localhost:${PORT}`,
-        description: "Local Development Server",
-      },
+      }
     ],
     components: {
       securitySchemes: {
