@@ -2,7 +2,8 @@ import { Request, Response } from "express";
 import mongoose from "mongoose";
 import Message from "../../models/message.model";
 import Chat from "../../models/chat.model";
-
+import { io } from "../../index";
+import { getReceiverSocketId } from "../../socket/socket";
 export const sendMessage = async (req: any, res: Response) => {
   const { chatId, content, type } = req.body;
   const senderId = req.user._id;
@@ -24,7 +25,6 @@ export const sendMessage = async (req: any, res: Response) => {
       status: "sent",
       readBy: [senderId] // Sender has read their own message
     }], { session });
-
     // 2. Update the Chat document: set lastMessage and increment unread counts
     const chat = await Chat.findById(chatId).session(session);
     if (!chat) {
@@ -50,7 +50,10 @@ export const sendMessage = async (req: any, res: Response) => {
       .populate("senderId", "username profilePicture")
       .populate("chatId");
 
-    // TODO: Trigger Socket.io event: io.to(chatId).emit("new_message", fullMessage)
+    // 🚀 Socket.io Emit: Notify all participants in the chat room
+    if (fullMessage) {
+      io.to(chatId).emit("new_message", fullMessage);
+    }
 
     return res.status(201).json(fullMessage);
   } catch (error) {
@@ -122,7 +125,11 @@ export const markAsRead = async (req: any, res: Response) => {
 
     await session.commitTransaction();
 
-    // TODO: Socket.io Emit: io.to(chatId).emit("messages_read", { chatId, userId: currentUserId })
+    // 🚀 Socket.io Emit: Notify everyone in the chat room that messages have been read
+    io.to(chatId).emit("messages_read", { 
+      chatId, 
+      userId: currentUserId 
+    });
 
     return res.status(200).json({ 
       success: true, 

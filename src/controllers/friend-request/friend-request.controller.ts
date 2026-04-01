@@ -2,6 +2,8 @@ import { Request, Response } from "express";
 import User from "../../models/user.model";
 import FriendRequest from "../../models/friendRequest.model";
 import mongoose from "mongoose";
+import { io } from "../../index";
+import { getReceiverSocketId } from "../../socket/socket";
 
 export const sendFriendRequest = async (req: any, res: Response) => {
   const session = await mongoose.startSession();
@@ -66,7 +68,18 @@ export const sendFriendRequest = async (req: any, res: Response) => {
 
     await session.commitTransaction();
 
-    // TODO: Emit Socket.IO event here: io.to(receiverId).emit("friend_request_received")
+    // 🚀 Socket.io Emit: Notify the receiver
+    const receiverSocketId = getReceiverSocketId(receiverId);
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit("new_friend_request", {
+        from: {
+          _id: sender._id,
+          username: sender.username,
+          profilePicture: sender.profilePicture
+        },
+        requestId: existingRequest ? existingRequest._id : null // Simplified
+      });
+    }
 
     return res.status(201).json({ message: "Friend request sent successfully." });
 
@@ -130,7 +143,17 @@ export const respondToFriendRequest = async (req: any, res: Response) => {
 
       await session.commitTransaction();
 
-      // TODO: Emit Socket event: io.to(friendRequest.from.toString()).emit("friend_request_accepted", { by: currentUserId })
+      // 🚀 Socket.io Emit: Notify the original sender that their request was accepted
+      const senderSocketId = getReceiverSocketId(friendRequest.from.toString());
+      if (senderSocketId) {
+        io.to(senderSocketId).emit("friend_request_accepted", {
+          by: {
+            _id: currentUserId,
+            username: req.user.username, // Assuming username is in req.user
+            profilePicture: req.user.profilePicture
+          }
+        });
+      }
 
       return res.status(200).json({ message: "Friend request accepted." });
     }
@@ -269,7 +292,13 @@ export const removeFriend = async (req: any, res: Response) => {
 
     await session.commitTransaction();
 
-    // TODO: Emit Socket event: io.to(friendId).emit("friend_removed", { by: currentUserId })
+    // 🚀 Socket.io Emit: Notify the friend that they have been removed
+    const friendSocketId = getReceiverSocketId(friendId);
+    if (friendSocketId) {
+      io.to(friendSocketId).emit("friend_removed", {
+        by: currentUserId
+      });
+    }
 
     return res.status(200).json({
       success: true,

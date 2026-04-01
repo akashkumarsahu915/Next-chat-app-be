@@ -1,5 +1,7 @@
-import { Response } from "express";
 import Chat from "../../../models/chat.model";
+import { io } from "../../../index";
+import { getReceiverSocketId } from "../../../socket/socket";
+import { Response } from "express";
 
 export const createGroup = async (req: any, res: Response) => {
     try {
@@ -28,8 +30,21 @@ export const createGroup = async (req: any, res: Response) => {
             )
         });
 
-        res.status(201).json(chat);
+        // Populate participant info so the frontend has details immediately
+        const fullChat = await Chat.findById(chat._id)
+            .populate("participants", "username profilePicture email")
+            .lean();
+
+        // 🚀 Notify each participant via socket
+        uniqueParticipantIds.forEach((participantId) => {
+            const receiverSocketId = getReceiverSocketId(participantId);
+            if (receiverSocketId) {
+                io.to(receiverSocketId).emit("new_group", fullChat);
+            }
+        });
+
+        res.status(201).json(fullChat);
     } catch (error) {
         res.status(500).json({ message: "Server error", error: error instanceof Error ? error.message : error });
     }
-};
+};

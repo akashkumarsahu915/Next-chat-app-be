@@ -25,7 +25,7 @@ export const searchUsers = async (req: any, res: Response) => {
                 },
             ],
         })
-            .select("uid username avatar bio isPrivate")
+            .select("uid username profilePicture bio isPrivate")
             .limit(10);
 
         res.json(users);
@@ -52,7 +52,7 @@ export const locateUsers = async (req: any, res: Response) => {
             },
             isPrivate: false,
         })
-            .select("uid username avatar bio location isPrivate")
+            .select("uid username profilePicture bio location isPrivate")
             .limit(10);
 
         return res.json(users);

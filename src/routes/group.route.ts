@@ -199,22 +199,7 @@ router.delete(
   removeUserFromGroup,
 );
 
-/**
- * @swagger
- * /api/chats:
- *   get:
- *     summary: Get all chats of logged-in user
- *     description: Retrieves all group chats where the currently authenticated user is a participant.
- *     tags: [groupChat]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: List of group chats retrieved successfully.
- *       500:
- *         description: Server Error.
- */
-router.get("/", AuthenticateUser, getUserChats);
+
 
 /**
  * @swagger

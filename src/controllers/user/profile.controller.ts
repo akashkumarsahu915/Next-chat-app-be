@@ -21,7 +21,7 @@ export const updateProfile = async (req: any, res: Response) => {
       {
         ...(username && { username }),
         ...(bio && { bio }),
-        ...(avatar && { profileImage: avatar }), // ✅ Mapped avatar to profileImage correctly
+        ...(avatar && { profilePicture: avatar }), // ✅ Mapped avatar to profilePicture correctly
         ...(typeof isPrivate === "boolean" && { isPrivate }),
         ...(notificationSettings && { notificationSettings }),
         ...(interests && { interests }),

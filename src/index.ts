@@ -4,7 +4,9 @@ import swaggerUi from "swagger-ui-express";
 import swaggerJsdoc from "swagger-jsdoc";
 import healthRoutes from "./routes/health.routes";
 import connectDB from "./config/db/connect";
-
+import {setupSocket} from "./socket/socket"
+import http from "http";
+import { Server } from "socket.io";
 import authRoutes from "./routes/auth.route";
 import userRoutes from "./routes/user.routes";
 import friendRequestRoutes from "./routes/Friend.request.route";
@@ -12,8 +14,10 @@ import chatRoutes from "./routes/chat.route";
 import groupChatRoutes from "./routes/group.route";
 import uploadRoutes from "./routes/cloudinary.route"
 import cors from "cors";
+import { set } from "mongoose";
 const app = express();
-const PORT = process.env.PORT || 3000;
+const server = http.createServer(app);
+const PORT = process.env.PORT ;
 
 // Middleware
 app.use(express.json());
@@ -84,11 +88,23 @@ app.get("/", (req: Request, res: Response) => {
   res.redirect("/api-docs");
 });
 
+
+//socket connection
+export const io = new Server(server, {
+  cors: {
+    origin: ["http://localhost:5173", "https://next-chat-app-3au1.onrender.com", `${process.env.RENDER_EXTERNAL_URL}`],
+    methods: ["GET", "POST"],
+    credentials: true,
+  }
+});
+setupSocket(io);
+
+
 // Start Server
 const startServer = async () => {
   try {
     await connectDB();
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
       console.log(`Server is running at http://localhost:${PORT}`);
       console.log(
         `Swagger docs available at http://localhost:${PORT}/api-docs`,

@@ -1,6 +1,5 @@
 import { Request, Response } from "express";
 import Chat from "../../models/chat.model";
-import User from "../../models/user.model";
 
 export const accessChat = async (req: any, res: Response) => {
   const { userId } = req.body; // The ID of the friend you want to chat with

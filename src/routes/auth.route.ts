@@ -84,7 +84,7 @@ router.post("/login", login);
  *                 username:
  *                   type: string
  *                   example: "akash"
- *                 avatar:
+ *                 profilePicture:
  *                   type: string
  *                   example: "https://example.com/avatar.png"
  *                 interests:

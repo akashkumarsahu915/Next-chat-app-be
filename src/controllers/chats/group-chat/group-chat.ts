@@ -2,6 +2,8 @@ import { Request, Response } from "express";
 import mongoose from "mongoose";
 import Message from "../../../models/message.model";
 import Chat from "../../../models/chat.model";
+import { io } from "../../../index";
+import { getReceiverSocketId } from "../../../socket/socket";
 
 
 export const groupSendMessage = async (req: any, res: any) => {
@@ -51,9 +53,13 @@ export const groupSendMessage = async (req: any, res: any) => {
     chat.lastMessage = message._id;
     await chat.save();
 
-    // 📤 6. (Optional) Populate sender info
+    // 📤 6. Populate sender info
     const populatedMessage = await Message.findById(message._id)
-      .populate("senderId", "username avatar");
+      .populate("senderId", "username profilePicture")
+      .populate("chatId");
+
+    // 🚀 Socket.io Emit: Broadcast to the entire group
+    io.to(chatId).emit("new_message", populatedMessage);
 
     res.status(201).json(populatedMessage);
   } catch (error) {
@@ -86,7 +92,21 @@ export const addUserToGroup = async (req: any, res: any) => {
     chat.participants.push(userId);
     await chat.save();
 
-    res.json(chat);
+    // 🔄 4. Populate chat info for broadcasting
+    const fullChat = await Chat.findById(chat._id)
+      .populate("participants", "username profilePicture email")
+      .lean();
+
+    // 🚀 Socket.io Emit: Notify existing group members
+    io.to(chatId).emit("user_added_to_group", { chatId, userId });
+
+    // 🚀 Socket.io Emit: Notify the new user individual socket ID so the group appears
+    const receiverSocketId = getReceiverSocketId(userId);
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit("new_group", fullChat);
+    }
+
+    res.json(fullChat);
   } catch (error) {
     res.status(500).json({ message: "Server error" });
   }
@@ -107,7 +127,16 @@ export const removeUserFromGroup = async (req: any, res: any) => {
 
     await chat.save();
 
-    res.json(chat);
+    // 🚀 Socket.io Emit: Notify group members that a user was removed
+    io.to(chatId).emit("user_removed_from_group", { chatId, userId });
+
+    // 🚀 Socket.io Emit: Notify the removed user specifically
+    const receiverSocketId = getReceiverSocketId(userId);
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit("group_removed", { chatId });
+    }
+
+    res.json({ message: "User removed successfully", chatId });
   } catch (error) {
     res.status(500).json({ message: "Server error" });
   }
@@ -115,7 +144,7 @@ export const removeUserFromGroup = async (req: any, res: any) => {
 export const getUserChats = async (req: any, res: any) => {
   try {
     const chats = await Chat.find({
-      participants: { $in: [req.userId] },
+      participants: { $in: [req.user._id] },
     }).populate("lastMessage");
 
     res.json(chats);
@@ -186,7 +215,7 @@ export const getGroupMembers = async (req: any, res: any) => {
     // 🔍 1. Check chat exists
     const chat = await Chat.findById(chatId).populate(
       "participants",
-      "uid username avatar bio"
+      "uid username profilePicture bio"
     );
 
     if (!chat) {
