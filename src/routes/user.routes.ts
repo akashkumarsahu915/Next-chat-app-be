@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { searchUsers, locateUsers } from "../controllers/user/user.controller";
 import { AuthenticateUser } from "../middleware/auth.middleware";
+import { updateProfile } from "../controllers/user/profile.controller";
 const router = Router();
 
 /**
@@ -49,4 +50,57 @@ router.get("/search", AuthenticateUser, searchUsers);
  *         description: List of users from same location
  */
 router.get("/locate-users", AuthenticateUser, locateUsers);
+
+
+/**
+ * @swagger
+ * /user/update-profile:
+ *   put:
+ *     summary: Update user profile
+ *     tags: [Profile]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *               bio:
+ *                 type: string
+ *               avatar:
+ *                 type: string
+ *                 example: https://api.dicebear.com/7.x/avataaars/svg?seed=Alex
+ *               isPrivate:
+ *                 type: boolean
+ *               interests:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               location:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               notificationSettings:
+ *                 type: object
+ *                 properties:
+ *                   pushEnabled:
+ *                     type: boolean
+ *                   newMessages:
+ *                     type: boolean
+ *                   friendRequests:
+ *                     type: boolean
+ *                   systemAlerts:
+ *                     type: boolean
+ *     responses:
+ *       200:
+ *         description: Profile updated successfully
+ *       500:
+ *         description: Profile update failed
+ */
+router.put("/update-profile", AuthenticateUser, updateProfile);
+
 export default router;
