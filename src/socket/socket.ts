@@ -16,8 +16,6 @@ interface JwtPayload {
 
 
 export const setupSocket = (io: Server) => {
-
-  // 🔥 AUTH MIDDLEWARE
   io.use((socket: CustomSocket, next) => {
     try {
       const token = socket.handshake.auth.token;
@@ -39,21 +37,25 @@ export const setupSocket = (io: Server) => {
     }
   });
 
-  // 🔌 CONNECTION
+  //  CONNECTION
   io.on("connection", (socket: CustomSocket) => {
     console.log("User connected:", socket.userId);
 
     if (socket.userId) {
       userSocketMap[socket.userId] = socket.id;
+      socket.join(socket.userId); // Join a unique room for this user
+      console.log(`User ${socket.userId} joined their own room`);
     }
 
-    // 📡 Emit online users
+    //  Emit online users
     io.emit("online_users", Object.keys(userSocketMap));
 
-    // 🚪 Room management
+    //  Room management
     socket.on("join_chat", (chatId: string) => {
       socket.join(chatId);
       console.log(`User ${socket.userId} joined room: ${chatId}`);
+      // Send confirmation back to the client
+      socket.emit("room_joined", { chatId, success: true });
     });
 
     socket.on("leave_chat", (chatId: string) => {
@@ -61,7 +63,7 @@ export const setupSocket = (io: Server) => {
       console.log(`User ${socket.userId} left room: ${chatId}`);
     });
 
-    // ❌ Disconnect
+    //  Disconnect
     socket.on("disconnect", () => {
       console.log("User disconnected:", socket.userId);
 
@@ -74,7 +76,7 @@ export const setupSocket = (io: Server) => {
   });
 };
 
-// 🔥 helper
+//  helper
 export const getReceiverSocketId = (userId: string) => {
   return userSocketMap[userId];
 };

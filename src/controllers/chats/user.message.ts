@@ -48,11 +48,35 @@ export const sendMessage = async (req: any, res: Response) => {
     // 3. Populate sender info for the frontend UI
     const fullMessage = await Message.findById(newMessage._id)
       .populate("senderId", "username profilePicture")
-      .populate("chatId");
+      .lean();
 
     // 🚀 Socket.io Emit: Notify all participants in the chat room
     if (fullMessage) {
-      io.to(chatId).emit("new_message", fullMessage);
+      const room = chatId.toString();
+      const socketCount = io.sockets.adapter.rooms.get(room)?.size || 0;
+      console.log(`🚀 [Room Emission] new_message to ${room} (👥 Sockets in room: ${socketCount})`);
+      
+      // 1. Room Emission (Primary)
+      io.to(room).emit("new_message", fullMessage);
+
+      // 3. Update Chat List Emission (Ensures Sidebar updates in real-time)
+      const updatedChat = await Chat.findById(chatId)
+        .populate("participants", "username profilePicture email status")
+        .populate({
+          path: "lastMessage",
+          populate: {
+            path: "senderId",
+            select: "username profilePicture",
+          },
+        })
+        .lean();
+
+      if (updatedChat) {
+        chat.participants.forEach((participantId) => {
+          console.log(`🚀 [Chat Update Emission] update_chat to user ${participantId}`);
+          io.to(participantId.toString()).emit("update_chat", updatedChat);
+        });
+      }
     }
 
     return res.status(201).json(fullMessage);
@@ -126,10 +150,39 @@ export const markAsRead = async (req: any, res: Response) => {
     await session.commitTransaction();
 
     // 🚀 Socket.io Emit: Notify everyone in the chat room that messages have been read
-    io.to(chatId).emit("messages_read", { 
-      chatId, 
-      userId: currentUserId 
+    const room = chatId.toString();
+    const socketCount = io.sockets.adapter.rooms.get(room)?.size || 0;
+    console.log(`🚀 [Room Emission] messages_read to ${room} (👥 Sockets in room: ${socketCount})`);
+    
+    const readPayload = { chatId, userId: currentUserId };
+
+    // 1. Room Emission
+    io.to(room).emit("messages_read", readPayload);
+
+    // 2. Direct User Fallback
+    chat.participants.forEach((participantId) => {
+      console.log(`🚀 [Direct Emission] messages_read to user ${participantId}`);
+      io.to(participantId.toString()).emit("messages_read", readPayload);
     });
+
+    // 3. Update Chat List Emission (Clear unread counts in sidebar)
+    const updatedChat = await Chat.findById(chatId)
+      .populate("participants", "username profilePicture email status")
+      .populate({
+        path: "lastMessage",
+        populate: {
+          path: "senderId",
+          select: "username profilePicture",
+        },
+      })
+      .lean();
+
+    if (updatedChat) {
+      chat.participants.forEach((participantId) => {
+        console.log(`🚀 [Chat Update Emission] update_chat to user ${participantId}`);
+        io.to(participantId.toString()).emit("update_chat", updatedChat);
+      });
+    }
 
     return res.status(200).json({ 
       success: true, 

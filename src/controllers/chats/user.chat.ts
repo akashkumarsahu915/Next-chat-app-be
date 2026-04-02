@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import Chat from "../../models/chat.model";
+import { io } from "../../index";
 
 export const accessChat = async (req: any, res: Response) => {
   const { userId } = req.body; // The ID of the friend you want to chat with
@@ -43,6 +44,14 @@ export const accessChat = async (req: any, res: Response) => {
         "participants",
         "username profilePicture email"
       );
+
+      // 🚀 Socket.io Emit: Notify both participants about the new chat
+      if (fullChat) {
+        [currentUserId, userId].forEach((id) => {
+          console.log(`🚀 [New Chat Emission] update_chat to user ${id}`);
+          io.to(id.toString()).emit("update_chat", fullChat);
+        });
+      }
 
       return res.status(201).json(fullChat);
     }

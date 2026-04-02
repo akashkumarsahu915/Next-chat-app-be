@@ -4,7 +4,7 @@ import swaggerUi from "swagger-ui-express";
 import swaggerJsdoc from "swagger-jsdoc";
 import healthRoutes from "./routes/health.routes";
 import connectDB from "./config/db/connect";
-import {setupSocket} from "./socket/socket"
+import { setupSocket } from "./socket/socket"
 import http from "http";
 import { Server } from "socket.io";
 import authRoutes from "./routes/auth.route";
@@ -17,12 +17,12 @@ import cors from "cors";
 import { set } from "mongoose";
 const app = express();
 const server = http.createServer(app);
-const PORT = process.env.PORT ;
+const PORT = process.env.PORT;
 
 // Middleware
 app.use(express.json());
 app.use(cors({
-  origin: ["http://localhost:5173", "https://next-chat-app-3au1.onrender.com", `${process.env.RENDER_EXTERNAL_URL}`],
+  origin: ["http://localhost:5173", "http://192.168.1.2:5173", "https://next-chat-app-3au1.onrender.com", `${process.env.RENDER_EXTERNAL_URL}`],
   credentials: true,
 }));
 // Swagger Configuration

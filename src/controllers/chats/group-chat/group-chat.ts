@@ -49,8 +49,18 @@ export const groupSendMessage = async (req: any, res: any) => {
       readBy: [req.user._id],
     });
 
-    // 🔄 5. Update last message
+    // 🔄 5. Update last message and unread counts
     chat.lastMessage = message._id;
+
+    // Increment unread counts for everyone except the sender
+    chat.participants.forEach((participantId: any) => {
+      const pIdStr = participantId.toString();
+      if (pIdStr !== req.user._id.toString()) {
+        const currentCount = chat.unreadCounts.get(pIdStr) || 0;
+        chat.unreadCounts.set(pIdStr, currentCount + 1);
+      }
+    });
+
     await chat.save();
 
     // 📤 6. Populate sender info
@@ -60,6 +70,25 @@ export const groupSendMessage = async (req: any, res: any) => {
 
     // 🚀 Socket.io Emit: Broadcast to the entire group
     io.to(chatId).emit("new_message", populatedMessage);
+
+    // 🚀 Socket.io Emit: Update Chat List for all participants
+    const updatedChat = await Chat.findById(chatId)
+      .populate("participants", "username profilePicture email status")
+      .populate({
+        path: "lastMessage",
+        populate: {
+          path: "senderId",
+          select: "username profilePicture",
+        },
+      })
+      .lean();
+
+    if (updatedChat) {
+      chat.participants.forEach((participantId: any) => {
+        console.log(`🚀 [Chat Update Emission] update_chat to user ${participantId}`);
+        io.to(participantId.toString()).emit("update_chat", updatedChat);
+      });
+    }
 
     res.status(201).json(populatedMessage);
   } catch (error) {
@@ -195,6 +224,25 @@ export const markMessagesAsRead = async (req: any, res: any) => {
     if (chat.unreadCounts) {
       chat.unreadCounts.set(userId.toString(), 0);
       await chat.save();
+    }
+
+    // 🚀 Socket.io Emit: Update Chat List for all participants (to clear unread count)
+    const updatedChat = await Chat.findById(chatId)
+      .populate("participants", "username profilePicture email status")
+      .populate({
+        path: "lastMessage",
+        populate: {
+          path: "senderId",
+          select: "username profilePicture",
+        },
+      })
+      .lean();
+
+    if (updatedChat) {
+      chat.participants.forEach((participantId: any) => {
+        console.log(`🚀 [Chat Update Emission] update_chat to user ${participantId}`);
+        io.to(participantId.toString()).emit("update_chat", updatedChat);
+      });
     }
 
     res.json({
