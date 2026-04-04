@@ -18,6 +18,7 @@ export const searchUsers = async (req: any, res: Response) => {
                     $or: [
                         { username: { $regex: search, $options: "i" } },
                         { uid: { $regex: search, $options: "i" } },
+                        { location: { $regex: search, $options: "i" } },
                     ],
                 },
                 {
@@ -25,7 +26,7 @@ export const searchUsers = async (req: any, res: Response) => {
                 },
             ],
         })
-            .select("uid username profilePicture bio isPrivate")
+            .select("uid username profilePicture bio isPrivate location")
             .limit(10);
 
         res.json(users);
